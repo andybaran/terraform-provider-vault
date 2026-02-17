@@ -95,10 +95,9 @@ func TestAccDataSourceLDAPStaticRoleCredentials_DualAccount(t *testing.T) {
 					resource.TestCheckResourceAttrSet(dataName, consts.FieldLastVaultRotation),
 					resource.TestCheckResourceAttr(dataName, consts.FieldDN, dn),
 					resource.TestCheckResourceAttr(dataName, consts.FieldRotationPeriod, "86400"),
-					// Verify standby fields are populated in dual-account mode
-					resource.TestCheckResourceAttr(dataName, consts.FieldStandbyUsername, usernameB),
-					resource.TestCheckResourceAttr(dataName, consts.FieldStandbyDN, dnB),
-					resource.TestCheckResourceAttrSet(dataName, consts.FieldStandbyPassword),
+					// Verify standby fields are empty during active state (only populated during grace_period)
+					resource.TestCheckResourceAttr(dataName, consts.FieldStandbyUsername, ""),
+					resource.TestCheckResourceAttr(dataName, consts.FieldStandbyDN, ""),
 				),
 			},
 		},
@@ -108,21 +107,21 @@ func TestAccDataSourceLDAPStaticRoleCredentials_DualAccount(t *testing.T) {
 func testLDAPStaticRoleDualAccountDataSource(path, bindDN, bindPass, url, username, dn, usernameB, dnB string) string {
 	return fmt.Sprintf(`
 resource "vault_ldap_secret_backend" "test" {
-  path                      = "%%[1]s"
+  path                      = "%[1]s"
   description               = "test description"
-  binddn                    = "%%[2]s"
-  bindpass                  = "%%[3]s"
-  url                       = "%%[4]s"
+  binddn                    = "%[2]s"
+  bindpass                  = "%[3]s"
+  url                       = "%[4]s"
   userdn                    = "CN=Users,DC=corp,DC=example,DC=net"
 }
 
 resource "vault_ldap_secret_backend_static_role" "role" {
   mount             = vault_ldap_secret_backend.test.path
-  username          = "%%[5]s"
-  dn                = "%%[6]s"
-  username_b        = "%%[7]s"
-  dn_b              = "%%[8]s"
-  role_name         = "%%[5]s"
+  username          = "%[5]s"
+  dn                = "%[6]s"
+  username_b        = "%[7]s"
+  dn_b              = "%[8]s"
+  role_name         = "%[5]s"
   rotation_period   = 86400
   dual_account_mode = true
   grace_period      = 3600
