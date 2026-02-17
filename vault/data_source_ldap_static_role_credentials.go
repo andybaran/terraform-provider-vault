@@ -88,29 +88,29 @@ func ldapStaticCredDataSource() *schema.Resource {
 			consts.FieldStandbyUsername: {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Username of the standby account during grace period. Only set when rotation_state is grace_period.",
+				Description: "Username of the standby account. Always set when dual_account_mode is enabled.",
 			},
 			consts.FieldStandbyDN: {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "DN of the standby account during grace period. Only set when rotation_state is grace_period.",
+				Description: "DN of the standby account. Always set when dual_account_mode is enabled.",
 			},
 			consts.FieldStandbyPassword: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Sensitive:   true,
-				Description: "Password of the standby account during grace period. Only set when rotation_state is grace_period.",
+				Description: "Password of the standby account. Always set when dual_account_mode is enabled.",
 			},
 			consts.FieldStandbyLastPassword: {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Sensitive:   true,
-				Description: "Previous password of the standby account during grace period. Only set when rotation_state is grace_period.",
+				Description: "Previous password of the standby account. Always set when dual_account_mode is enabled.",
 			},
 			consts.FieldGracePeriodEnd: {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Timestamp when the grace period expires. Only set when rotation_state is grace_period.",
+				Description: "Timestamp when the grace period expires. Only set during grace_period rotation state.",
 			},
 		},
 	}

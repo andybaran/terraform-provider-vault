@@ -83,8 +83,6 @@ The following attributes are only populated when the static role has `dual_accou
 
 * `rotation_state` - Current rotation state (`active` or `grace_period`).
 
-The following attributes are only populated during the grace period (`rotation_state` is `grace_period`):
-
 * `standby_username` - Username of the standby account.
 
 * `standby_dn` - DN of the standby account.
@@ -93,4 +91,4 @@ The following attributes are only populated during the grace period (`rotation_s
 
 * `standby_last_password` - Previous password of the standby account.
 
-* `grace_period_end` - Timestamp when the grace period expires.
+* `grace_period_end` - Timestamp when the grace period expires. Only set during `grace_period` rotation state.
