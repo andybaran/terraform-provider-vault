@@ -254,6 +254,14 @@ func GetTestADCreds(t *testing.T) (string, string, string) {
 	return v[0], v[1], v[2]
 }
 
+// GetTestADLDAPCreds returns Active Directory connection credentials for LDAP
+// secrets engine integration tests. The test is skipped if any of the required
+// variables are not set: AD_URL, AD_BIND_DN, AD_BIND_PW, AD_USER_DN, AD_DOMAIN.
+func GetTestADLDAPCreds(t *testing.T) (url, bindDN, bindPW, userDN, domain string) {
+	v := SkipTestEnvUnset(t, "AD_URL", "AD_BIND_DN", "AD_BIND_PW", "AD_USER_DN", "AD_DOMAIN")
+	return v[0], v[1], v[2], v[3], v[4]
+}
+
 func GetTestLDAPCreds(t *testing.T) (string, string, string) {
 	v := SkipTestEnvUnset(t, "LDAP_BINDDN", "LDAP_BINDPASS", "LDAP_URL")
 	return v[0], v[1], v[2]
