@@ -69,6 +69,49 @@ func ldapStaticCredDataSource() *schema.Resource {
 				Computed:    true,
 				Description: "Name of the static role.",
 			},
+			// Dual-account fields (only populated when dual_account_mode is enabled on the role)
+			consts.FieldDualAccountMode: {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "Whether the static role uses dual-account (blue/green) rotation mode.",
+			},
+			consts.FieldActiveAccount: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Which account is currently active (a or b). Only set when dual_account_mode is enabled.",
+			},
+			consts.FieldRotationState: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Current rotation state (active or grace_period). Only set when dual_account_mode is enabled.",
+			},
+			consts.FieldStandbyUsername: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Username of the standby account during grace period. Only set when rotation_state is grace_period.",
+			},
+			consts.FieldStandbyDN: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "DN of the standby account during grace period. Only set when rotation_state is grace_period.",
+			},
+			consts.FieldStandbyPassword: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "Password of the standby account during grace period. Only set when rotation_state is grace_period.",
+			},
+			consts.FieldStandbyLastPassword: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "Previous password of the standby account during grace period. Only set when rotation_state is grace_period.",
+			},
+			consts.FieldGracePeriodEnd: {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Timestamp when the grace period expires. Only set when rotation_state is grace_period.",
+			},
 		},
 	}
 }
@@ -119,17 +162,51 @@ func readLDAPStaticCreds(ctx context.Context, d *schema.ResourceData, meta inter
 	if err := d.Set(consts.FieldUsername, response.username); err != nil {
 		return diag.FromErr(err)
 	}
+
+	// Set dual-account fields (safe to set even when not dual-account; they will be zero values)
+	if err := d.Set(consts.FieldDualAccountMode, response.dualAccountMode); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(consts.FieldActiveAccount, response.activeAccount); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(consts.FieldRotationState, response.rotationState); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(consts.FieldStandbyUsername, response.standbyUsername); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(consts.FieldStandbyDN, response.standbyDN); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(consts.FieldStandbyPassword, response.standbyPassword); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(consts.FieldStandbyLastPassword, response.standbyLastPassword); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(consts.FieldGracePeriodEnd, response.gracePeriodEnd); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
 type lDAPStaticCredResponse struct {
-	dn                string
-	lastPassword      string
-	lastVaultRotation string
-	password          string
-	rotationPeriod    int64
-	ttl               int64
-	username          string
+	dn                  string
+	lastPassword        string
+	lastVaultRotation   string
+	password            string
+	rotationPeriod      int64
+	ttl                 int64
+	username            string
+	dualAccountMode     bool
+	activeAccount       string
+	rotationState       string
+	standbyUsername     string
+	standbyDN           string
+	standbyPassword     string
+	standbyLastPassword string
+	gracePeriodEnd      string
 }
 
 func parseLDAPStaticCredSecret(secret *api.Secret) (lDAPStaticCredResponse, error) {
@@ -170,7 +247,7 @@ func parseLDAPStaticCredSecret(secret *api.Secret) (lDAPStaticCredResponse, erro
 		return lDAPStaticCredResponse{}, fmt.Errorf("password is not set in response")
 	}
 
-	return lDAPStaticCredResponse{
+	resp := lDAPStaticCredResponse{
 		dn:                dn,
 		lastPassword:      lastPassword,
 		lastVaultRotation: lastVaultRotation,
@@ -178,5 +255,35 @@ func parseLDAPStaticCredSecret(secret *api.Secret) (lDAPStaticCredResponse, erro
 		rotationPeriod:    rotationPeriod,
 		ttl:               ttl,
 		username:          username,
-	}, nil
+	}
+
+	// Parse dual-account fields if present
+	if v, ok := secret.Data[consts.FieldDualAccountMode]; ok {
+		if b, ok := v.(bool); ok {
+			resp.dualAccountMode = b
+		}
+	}
+	if v, ok := secret.Data[consts.FieldActiveAccount]; ok {
+		resp.activeAccount, _ = v.(string)
+	}
+	if v, ok := secret.Data[consts.FieldRotationState]; ok {
+		resp.rotationState, _ = v.(string)
+	}
+	if v, ok := secret.Data[consts.FieldStandbyUsername]; ok {
+		resp.standbyUsername, _ = v.(string)
+	}
+	if v, ok := secret.Data[consts.FieldStandbyDN]; ok {
+		resp.standbyDN, _ = v.(string)
+	}
+	if v, ok := secret.Data[consts.FieldStandbyPassword]; ok {
+		resp.standbyPassword, _ = v.(string)
+	}
+	if v, ok := secret.Data[consts.FieldStandbyLastPassword]; ok {
+		resp.standbyLastPassword, _ = v.(string)
+	}
+	if v, ok := secret.Data[consts.FieldGracePeriodEnd]; ok {
+		resp.gracePeriodEnd = fmt.Sprintf("%v", v)
+	}
+
+	return resp, nil
 }

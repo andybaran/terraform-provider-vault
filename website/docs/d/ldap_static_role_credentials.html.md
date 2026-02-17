@@ -72,3 +72,25 @@ In addition to the arguments above, the following attributes are exported:
 * `ttl` - Duration in seconds after which the issued credential should expire.
  
 * `username` - The name of the static role.
+
+### Dual-Account Attributes
+
+The following attributes are only populated when the static role has `dual_account_mode` enabled:
+
+* `dual_account_mode` - Whether the static role uses dual-account (blue/green) rotation mode.
+
+* `active_account` - Which account is currently active (`a` or `b`).
+
+* `rotation_state` - Current rotation state (`active` or `grace_period`).
+
+The following attributes are only populated during the grace period (`rotation_state` is `grace_period`):
+
+* `standby_username` - Username of the standby account.
+
+* `standby_dn` - DN of the standby account.
+
+* `standby_password` - Password of the standby account.
+
+* `standby_last_password` - Previous password of the standby account.
+
+* `grace_period_end` - Timestamp when the grace period expires.
