@@ -106,3 +106,76 @@ resource "vault_ldap_secret_backend_static_role" "role" {
 }
 `, mount, bindDN, bindPass, url, username, dn, role, rotationPeriod)
 }
+
+func TestAccLDAPSecretBackendStaticRole_DualAccount(t *testing.T) {
+	var (
+		path                   = acctest.RandomWithPrefix("tf-test-ldap-dual-account")
+		bindDN, bindPass, url  = testutil.GetTestLDAPCreds(t)
+		resourceType           = "vault_ldap_secret_backend_static_role"
+		resourceName           = resourceType + ".role"
+		username               = "alice"
+		dn                     = "cn=alice,ou=users,dc=example,dc=org"
+		usernameB              = "alice-b"
+		dnB                    = "cn=alice-b,ou=users,dc=example,dc=org"
+		rotationPeriod         = "86400"
+		gracePeriod            = "3600"
+		updatedGracePeriod     = "7200"
+		updatedRotationPeriod  = "172800"
+	)
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testAccProtoV5ProviderFactories(context.Background(), t),
+		PreCheck: func() {
+			testutil.TestAccPreCheck(t)
+			SkipIfAPIVersionLT(t, testProvider.Meta(), provider.VaultVersion112)
+		},
+		CheckDestroy: testCheckMountDestroyed(resourceType, consts.MountTypeLDAP, consts.FieldMount),
+		Steps: []resource.TestStep{
+			{
+				Config: testLDAPSecretBackendStaticRoleConfig_DualAccount(path, bindDN, bindPass, url, username, dn, usernameB, dnB, username, rotationPeriod, gracePeriod),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, consts.FieldDN, dn),
+					resource.TestCheckResourceAttr(resourceName, consts.FieldUsername, username),
+					resource.TestCheckResourceAttr(resourceName, consts.FieldDualAccountMode, "true"),
+					resource.TestCheckResourceAttr(resourceName, consts.FieldUsernameB, usernameB),
+					resource.TestCheckResourceAttr(resourceName, consts.FieldDNB, dnB),
+					resource.TestCheckResourceAttr(resourceName, consts.FieldRotationPeriod, rotationPeriod),
+					resource.TestCheckResourceAttr(resourceName, consts.FieldGracePeriod, gracePeriod),
+				),
+			},
+			{
+				Config: testLDAPSecretBackendStaticRoleConfig_DualAccount(path, bindDN, bindPass, url, username, dn, usernameB, dnB, username, updatedRotationPeriod, updatedGracePeriod),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, consts.FieldRotationPeriod, updatedRotationPeriod),
+					resource.TestCheckResourceAttr(resourceName, consts.FieldGracePeriod, updatedGracePeriod),
+				),
+			},
+			testutil.GetImportTestStep(resourceName, false, nil, consts.FieldMount, consts.FieldRoleName),
+		},
+	})
+}
+
+func testLDAPSecretBackendStaticRoleConfig_DualAccount(mount, bindDN, bindPass, url, username, dn, usernameB, dnB, role, rotationPeriod, gracePeriod string) string {
+	return fmt.Sprintf(`
+resource "vault_ldap_secret_backend" "test" {
+  path                      = "%s"
+  description               = "test description"
+  binddn                    = "%s"
+  bindpass                  = "%s"
+  url                       = "%s"
+  userdn                    = "CN=Users,DC=corp,DC=example,DC=net"
+}
+
+resource "vault_ldap_secret_backend_static_role" "role" {
+  mount             = vault_ldap_secret_backend.test.path
+  username          = "%s"
+  dn                = "%s"
+  username_b        = "%s"
+  dn_b              = "%s"
+  role_name         = "%s"
+  rotation_period   = %s
+  dual_account_mode = true
+  grace_period      = %s
+}
+`, mount, bindDN, bindPass, url, username, dn, usernameB, dnB, role, rotationPeriod, gracePeriod)
+}
+

@@ -39,6 +39,31 @@ resource "vault_ldap_secret_backend_static_role" "role" {
 }
 ```
 
+### Example with Dual-Account Mode
+
+```hcl
+resource "vault_ldap_secret_backend" "config" {
+  path          = "my-custom-ldap"
+  binddn        = "CN=Administrator,CN=Users,DC=corp,DC=example,DC=net"
+  bindpass      = "SuperSecretPassw0rd"
+  url           = "ldaps://localhost"
+  insecure_tls  = "true"
+  userdn        = "CN=Users,DC=corp,DC=example,DC=net"
+}
+
+resource "vault_ldap_secret_backend_static_role" "role" {
+  mount             = vault_ldap_secret_backend.config.path
+  username          = "alice"
+  dn                = "cn=alice,ou=Users,DC=corp,DC=example,DC=net"
+  role_name         = "alice-dual"
+  rotation_period   = 86400
+  dual_account_mode = true
+  username_b        = "alice-b"
+  dn_b              = "cn=alice-b,ou=Users,DC=corp,DC=example,DC=net"
+  grace_period      = 3600
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -63,6 +88,20 @@ The following arguments are supported:
 
 * `skip_import_rotation` - (Optional) Causes vault to skip the initial secret rotation on import. Not applicable to updates.
   Requires Vault 1.16 or above.
+
+* `dual_account_mode` - (Optional) Enable dual-account (blue/green) rotation mode. When enabled, two LDAP service accounts are managed 
+  per static role with blue/green rotation and configurable grace periods. This enables zero-downtime credential rotation for 
+  enterprise LDAP environments. Cannot be modified after creation.
+
+* `username_b` - (Optional) The username of the second LDAP account (account B) when `dual_account_mode` is enabled. 
+  Required when `dual_account_mode` is true. Cannot be modified after creation.
+
+* `dn_b` - (Optional) Distinguished name (DN) of the second LDAP account (account B) when `dual_account_mode` is enabled. 
+  If given, it will take precedence over `username_b` for the LDAP search performed during password rotation.
+
+* `grace_period` - (Optional) Grace period duration in seconds where both account credentials are valid after rotation. 
+  Only used when `dual_account_mode` is enabled. During the grace period, both accounts' credentials are returned, 
+  allowing applications time to update their configuration before the old credentials expire.
 
 ## Attributes Reference
 

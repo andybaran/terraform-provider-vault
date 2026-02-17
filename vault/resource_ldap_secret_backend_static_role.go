@@ -52,6 +52,28 @@ func ldapSecretBackendStaticRoleResource() *schema.Resource {
 			Optional:    true,
 			Description: "Skip rotation of the password on import.",
 		},
+		consts.FieldDualAccountMode: {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Enable dual-account (blue/green) rotation mode. When enabled, two LDAP service accounts are managed per static role with blue/green rotation.",
+			ForceNew:    true,
+		},
+		consts.FieldUsernameB: {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The username of the second LDAP account (account B) when dual_account_mode is enabled.",
+			ForceNew:    true,
+		},
+		consts.FieldDNB: {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Distinguished name (DN) of the second LDAP account (account B) when dual_account_mode is enabled.",
+		},
+		consts.FieldGracePeriod: {
+			Type:        schema.TypeInt,
+			Optional:    true,
+			Description: "Grace period duration in seconds where both account credentials are valid after rotation. Only used when dual_account_mode is enabled.",
+		},
 	}
 	return &schema.Resource{
 		CreateContext: createUpdateLDAPStaticRoleResource,
@@ -70,12 +92,23 @@ var ldapSecretBackendStaticRoleFields = []string{
 	consts.FieldDN,
 	consts.FieldRotationPeriod,
 	consts.FieldSkipImportRotation,
+	consts.FieldDualAccountMode,
+	consts.FieldUsernameB,
+	consts.FieldDNB,
+	consts.FieldGracePeriod,
 }
 
 func createUpdateLDAPStaticRoleResource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, err := provider.GetClient(d, meta)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	// Validate dual-account mode configuration
+	if dualAccountMode, ok := d.GetOk(consts.FieldDualAccountMode); ok && dualAccountMode.(bool) {
+		if _, ok := d.GetOk(consts.FieldUsernameB); !ok {
+			return diag.FromErr(fmt.Errorf("username_b is required when dual_account_mode is enabled"))
+		}
 	}
 
 	mount := d.Get(consts.FieldMount).(string)
