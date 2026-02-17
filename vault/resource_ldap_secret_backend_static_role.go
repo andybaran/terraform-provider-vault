@@ -104,12 +104,17 @@ func createUpdateLDAPStaticRoleResource(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	// Validate dual-account mode configuration
-	if dualAccountMode, ok := d.GetOk(consts.FieldDualAccountMode); ok && dualAccountMode.(bool) {
+	// Validate dual-account mode configuration.
+	// Use d.Get() for booleans per SDKv2 best practice — d.GetOk() returns
+	// (false, false) for booleans explicitly set to false, which is a known bug.
+	if d.Get(consts.FieldDualAccountMode).(bool) {
 		if _, ok := d.GetOk(consts.FieldUsernameB); !ok {
 			return diag.FromErr(fmt.Errorf("username_b is required when dual_account_mode is enabled"))
 		}
-		if skipImport, ok := d.GetOk(consts.FieldSkipImportRotation); ok && skipImport.(bool) {
+		if d.Get(consts.FieldGracePeriod).(int) <= 0 {
+			return diag.FromErr(fmt.Errorf("grace_period is required and must be greater than 0 when dual_account_mode is enabled"))
+		}
+		if d.Get(consts.FieldSkipImportRotation).(bool) {
 			return diag.FromErr(fmt.Errorf("skip_import_rotation cannot be used with dual_account_mode; dual-account initial setup requires import rotation"))
 		}
 	}

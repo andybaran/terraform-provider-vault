@@ -75,7 +75,7 @@ In addition to the arguments above, the following attributes are exported:
 
 ### Dual-Account Attributes
 
-The following attributes are only populated when the static role has `dual_account_mode` enabled:
+The following attributes are set when the static role has `dual_account_mode` enabled:
 
 * `dual_account_mode` - Whether the static role uses dual-account (blue/green) rotation mode.
 

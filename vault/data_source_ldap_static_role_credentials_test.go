@@ -95,6 +95,10 @@ func TestAccDataSourceLDAPStaticRoleCredentials_DualAccount(t *testing.T) {
 					resource.TestCheckResourceAttrSet(dataName, consts.FieldLastVaultRotation),
 					resource.TestCheckResourceAttr(dataName, consts.FieldDN, dn),
 					resource.TestCheckResourceAttr(dataName, consts.FieldRotationPeriod, "86400"),
+					// Verify standby fields are populated in dual-account mode
+					resource.TestCheckResourceAttr(dataName, consts.FieldStandbyUsername, usernameB),
+					resource.TestCheckResourceAttr(dataName, consts.FieldStandbyDN, dnB),
+					resource.TestCheckResourceAttrSet(dataName, consts.FieldStandbyPassword),
 				),
 			},
 		},

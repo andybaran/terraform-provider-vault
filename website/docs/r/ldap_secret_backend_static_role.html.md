@@ -99,8 +99,9 @@ The following arguments are supported:
 * `dn_b` - (Optional) Distinguished name (DN) of the second LDAP account (account B) when `dual_account_mode` is enabled. 
   If given, it will take precedence over `username_b` for the LDAP search performed during password rotation.
 
-* `grace_period` - (Optional) Grace period duration in seconds where both account credentials are valid after rotation. 
-  Only used when `dual_account_mode` is enabled. During the grace period, both accounts' credentials are returned, 
+* `grace_period` - (Optional) Grace period duration in seconds where both account credentials are valid after rotation.
+  Required when `dual_account_mode` is true. Must be at least 5 seconds and less than `rotation_period`.
+  During the grace period, both accounts' credentials are returned,
   allowing applications time to update their configuration before the old credentials expire.
 
 ## Attributes Reference
